@@ -11,10 +11,15 @@
 
 #define EYE_PIN A3
 
-#define WHEELS_SERVO 9
-#define BODY_SERVO 10
-#define HEAD_NOD_SERVO 11
-#define HEAD_SIDE_SERVO 12
+#define SERVO_WHEELS 9
+#define SERVO_BODY 10
+#define SERVO_HEAD_NOD 11
+#define SERVO_HEAD_SIDE 12
+
+#define MOTOR_LEFT_BACK 1
+#define MOTOR_LEFT_FRONT 2
+#define MOTOR_RIGHT_FRONT 3
+#define MOTOR_RIGHT_BACK 4
 
 #define DRIVE_STOP 20
 #define DRIVE_LIMIT 255
@@ -63,10 +68,10 @@ float motorSpeedL;
 float motorSpeedR;
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
-Adafruit_DCMotor *motorBL = AFMS.getMotor(1);
-Adafruit_DCMotor *motorFL = AFMS.getMotor(2);
-Adafruit_DCMotor *motorFR = AFMS.getMotor(3);
-Adafruit_DCMotor *motorBR = AFMS.getMotor(4);
+Adafruit_DCMotor *motorBL = AFMS.getMotor(MOTOR_LEFT_BACK);
+Adafruit_DCMotor *motorFL = AFMS.getMotor(MOTOR_LEFT_FRONT);
+Adafruit_DCMotor *motorFR = AFMS.getMotor(MOTOR_RIGHT_FRONT);
+Adafruit_DCMotor *motorBR = AFMS.getMotor(MOTOR_RIGHT_BACK);
 
 Servo ServoWheels;
 Servo ServoBody;
@@ -109,10 +114,10 @@ void setup() {
   rf95.setTxPower(23, false);
   AFMS.begin();
 
-  ServoHeadSide.attach(HEAD_SIDE_SERVO);
-  ServoHeadNod.attach(HEAD_NOD_SERVO);
-  ServoBody.attach(BODY_SERVO);
-  ServoWheels.attach(WHEELS_SERVO);
+  ServoHeadSide.attach(SERVO_HEAD_SIDE);
+  ServoHeadNod.attach(SERVO_HEAD_NOD);
+  ServoBody.attach(SERVO_BODY);
+  ServoWheels.attach(SERVO_WHEELS);
 }
 
 void loop() {
