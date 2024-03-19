@@ -56,9 +56,6 @@ float speedR;
 float motorSpeedL;
 float motorSpeedR;
 
-char *strings[7];
-char *ptr = NULL;
-
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *motorBL = AFMS.getMotor(1);
 Adafruit_DCMotor *motorFL = AFMS.getMotor(2);
@@ -136,21 +133,22 @@ void handleRadio() {
   }
 }
 
-void readComm(const char *mess) {
+void readComm(const uint8_t *mess) {
   byte index = 0;
-  ptr = strtok((char *)mess, ",");
-  while (ptr != NULL) {
-    strings[index] = ptr;
+  const char *ptr = strtok((char *)mess, ",");
+  while (ptr != NULL && index < 7) {
+    switch (index) {
+      case 0: bodyPositionIn = atoi(ptr); break;
+      case 1: trackPositionIn = atoi(ptr); break;
+      case 2: headForwardIn = atoi(ptr); break;
+      case 3: headSideIn = atoi(ptr); break;
+      case 4: driveSideIn = atoi(ptr); break;
+      case 5: driveForwardIn = atoi(ptr); break;
+      case 6: omniIn = atoi(ptr); break;
+    }
     index++;
     ptr = strtok(NULL, ",");
   }
-  bodyPositionIn = atoi(strings[0]);
-  trackPositionIn = atoi(strings[1]);
-  headForwardIn = atoi(strings[2]);
-  headSideIn = atoi(strings[3]);
-  driveSideIn = atoi(strings[4]);
-  driveForwardIn = atoi(strings[5]);
-  omniIn = atoi(strings[6]);
 }
 
 void mapInputs() {
