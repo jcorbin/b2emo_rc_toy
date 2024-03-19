@@ -16,6 +16,12 @@
 #define HEAD_NOD_SERVO 11
 #define HEAD_SIDE_SERVO 12
 
+#define DRIVE_STOP 20
+#define DRIVE_LIMIT 255
+
+#define MOTOR_MIN 150
+#define MOTOR_MAX 255
+
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
 float bodyPosition;
@@ -200,79 +206,33 @@ void controlBody() {
 void controlDrives() {
   speedR = driveForwardSmooth + driveSideSmooth;
   speedL = driveForwardSmooth - driveSideSmooth;
-  speedR = constrain(speedR, -255, 255);
-  speedL = constrain(speedL, -255, 255);
-
   if (omniIn > 0) {
-    if (speedR > 20) {
-      motorSpeedR = map(speedR, 20, 255, 150, 255);
-      motorBR->run(FORWARD);
-      motorFR->run(FORWARD);
-      motorBR->setSpeed(motorSpeedR);
-      motorFR->setSpeed(motorSpeedR);
-    } else if (speedR < -20) {
-      motorSpeedR = map(speedR, -20, -255, 150, 255);
-      motorBR->run(BACKWARD);
-      motorFR->run(BACKWARD);
-      motorBR->setSpeed(motorSpeedR);
-      motorFR->setSpeed(motorSpeedR);
-    } else {
-      motorSpeedR = 0;
-      motorBR->run(RELEASE);
-      motorFR->run(RELEASE);
-    }
-    if (speedL > 20) {
-      motorSpeedL = map(speedL, 20, 255, 150, 255);
-      motorBL->run(FORWARD);
-      motorFL->run(FORWARD);
-      motorBL->setSpeed(motorSpeedL);
-      motorFL->setSpeed(motorSpeedL);
-    } else if (speedL < -20) {
-      motorSpeedL = map(speedL, -20, -255, 150, 255);
-      motorBL->run(BACKWARD);
-      motorFL->run(BACKWARD);
-      motorBL->setSpeed(motorSpeedL);
-      motorFL->setSpeed(motorSpeedL);
-    } else {
-      motorSpeedL = 0;
-      motorBL->run(RELEASE);
-      motorFL->run(RELEASE);
-    }
+    motorSpeedR = driveMotorPair(motorBR, motorFR, speedR);
+    motorSpeedL = driveMotorPair(motorBL, motorFL, speedL);
   } else {
-    if (speedR > 20) {
-      motorSpeedR = map(speedR, 20, 255, 150, 255);
-      motorBR->run(FORWARD);
-      motorFL->run(FORWARD);
-      motorBR->setSpeed(motorSpeedR);
-      motorFL->setSpeed(motorSpeedR);
-    } else if (speedR < -20) {
-      motorSpeedR = map(speedR, -20, -255, 150, 255);
-      motorBR->run(BACKWARD);
-      motorFL->run(BACKWARD);
-      motorBR->setSpeed(motorSpeedR);
-      motorFL->setSpeed(motorSpeedR);
-    } else {
-      motorSpeedR = 0;
-      motorBR->run(RELEASE);
-      motorFL->run(RELEASE);
-    }
-
-    if (speedL > 20) {
-      motorSpeedL = map(speedL, 20, 255, 150, 255);
-      motorBL->run(FORWARD);
-      motorFR->run(FORWARD);
-      motorBL->setSpeed(motorSpeedL);
-      motorFR->setSpeed(motorSpeedL);
-    } else if (speedL < -20) {
-      motorSpeedL = map(speedL, -20, -255, 150, 255);
-      motorBL->run(BACKWARD);
-      motorFR->run(BACKWARD);
-      motorBL->setSpeed(motorSpeedL);
-      motorFR->setSpeed(motorSpeedL);
-    } else {
-      motorSpeedL = 0;
-      motorBL->run(RELEASE);
-      motorFR->run(RELEASE);
-    }
+    motorSpeedR = driveMotorPair(motorBR, motorFL, speedR);
+    motorSpeedL = driveMotorPair(motorBL, motorFR, speedL);
   }
+}
+
+float driveMotorPair(Adafruit_DCMotor *motorA, Adafruit_DCMotor *motorB, float speed) {
+  float motorSpeed = 0;
+  speed = constrain(speed, -DRIVE_LIMIT, DRIVE_LIMIT);
+  if (speed > DRIVE_STOP) {
+    motorSpeed = map(speed, DRIVE_STOP, DRIVE_LIMIT, MOTOR_MIN, MOTOR_MAX);
+    motorA->run(FORWARD);
+    motorB->run(FORWARD);
+    motorA->setSpeed(motorSpeed);
+    motorB->setSpeed(motorSpeed);
+  } else if (speed < -DRIVE_STOP) {
+    motorSpeed = map(speed, -DRIVE_STOP, -DRIVE_LIMIT, MOTOR_MIN, MOTOR_MAX);
+    motorA->run(BACKWARD);
+    motorB->run(BACKWARD);
+    motorA->setSpeed(motorSpeed);
+    motorB->setSpeed(motorSpeed);
+  } else {
+    motorA->run(RELEASE);
+    motorB->run(RELEASE);
+  }
+  return motorSpeed;
 }
