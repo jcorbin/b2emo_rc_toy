@@ -141,7 +141,6 @@ void handleRadio() {
     uint8_t len = sizeof(buf);
     if (rf95.recv(buf, &len)) {
       readComm(buf);
-      mapInputs();
       eyePulse = 1.0;
     } else {
       eyePulse = 0.0;
@@ -166,22 +165,13 @@ void readComm(const uint8_t *mess) {
     index++;
     ptr = strtok(NULL, ",");
   }
-}
 
-void mapInputs() {
-  bodyPosition = map(bodyPositionIn, 30, 66, 0, 180);
-  headForward = map(headForwardIn, 10, 89, 0, 180);
-  headSide = map(headSideIn, 0, 99, 0, 180);
-  trackPosition = map(trackPositionIn, 30, 66, 0, 180);
-  driveSide = map(driveSideIn, 5, 95, 255, -255);
-  driveForward = map(driveForwardIn, 5, 95, 255, -255);
-
-  bodyPosition = constrain(bodyPosition, 0, 180);
-  headForward = constrain(headForward, 0, 180);
-  headSide = constrain(headSide, 2, 180);
-  trackPosition = constrain(trackPosition, 5, 180);
-  driveSide = constrain(driveSide, -255, 255);
-  driveForward = constrain(driveSide, -255, 255);
+  bodyPosition = constrain(map(bodyPositionIn, 30, 66, 0, 180), 0, 180);
+  headSide = constrain(map(headSideIn, 0, 99, 0, 180), 2, 180);
+  headForward = constrain(map(headForwardIn, 10, 89, 0, 180), 0, 180);
+  trackPosition = constrain(map(trackPositionIn, 30, 66, 0, 180), 5, 180);
+  driveSide = constrain(map(driveSideIn, 5, 95, 255, -255), -255, 255);
+  driveForward = constrain(map(driveForwardIn, 5, 95, 255, -255), -255, 255);
 }
 
 void smoothState() {
