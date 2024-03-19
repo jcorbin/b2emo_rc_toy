@@ -47,8 +47,8 @@ float headSidePrev;
 float driveSidePrev;
 float driveForwardPrev;
 
-float bodyFactorIn;
-float bodyFactor;
+float bodyNodFactor;
+float headNod;
 
 float speedL;
 float speedR;
@@ -184,15 +184,15 @@ void smoothState() {
 }
 
 void controlBody() {
-  bodyFactorIn = map(bodyPositionSmooth, 0, 160, 100, 0);
-  bodyFactor = constrain(bodyFactorIn, 0, 100);
+  bodyNodFactor = map(bodyPositionSmooth, 0, 160, 100, 0);
+  bodyNodFactor = constrain(bodyNodFactor, 0, 100);
 
-  headForwardSmooth = map(headForwardSmooth, 0, 180, -90, 90);
-  headForwardSmooth = headForwardSmooth * (bodyFactor / 100);
-  headForwardSmooth = map(headForwardSmooth, -90, 90, 50, 130);
+  headNod = map(headForwardSmooth, 0, 180, -90, 90);
+  headNod = headNod * (bodyNodFactor / 100);
+  headNod = map(headNod, -90, 90, 50, 130);
 
   ServoHeadSide.write(headSideSmooth);
-  ServoHeadNod.write(headForwardSmooth);
+  ServoHeadNod.write(headNod);
   ServoBody.write(bodyPositionSmooth);
   ServoWheels.write(trackPositionSmooth);
 }
