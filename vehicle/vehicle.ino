@@ -163,6 +163,8 @@ void mapInputs() {
   headForward = constrain(headForward, 0, 180);
   headSide = constrain(headSide, 2, 180);
   trackPosition = constrain(trackPosition, 5, 180);
+  driveSide = constrain(driveSide, -255, 255);
+  driveForward = constrain(driveSide, -255, 255);
 }
 
 void smoothState() {
