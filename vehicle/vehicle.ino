@@ -27,7 +27,12 @@
 #define MOTOR_MIN 150
 #define MOTOR_MAX 255
 
+#define EYE_FADE 0.9 // eye pulse fade factor per tick
+#define EYE_THRESHOLD 0.1 // LED cutoff after pulse fades under
+
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
+
+float eyePulse;
 
 float bodyPosition;
 float trackPosition;
@@ -137,8 +142,9 @@ void handleRadio() {
     if (rf95.recv(buf, &len)) {
       readComm(buf);
       mapInputs();
-      digitalWrite(LED_BUILTIN, HIGH);
+      eyePulse = 1.0;
     } else {
+      eyePulse = 0.0;
       Serial.println("Receive failed");
     }
   }
@@ -195,6 +201,9 @@ void smoothState() {
 }
 
 void controlBody() {
+  eyePulse *= EYE_FADE;
+  digitalWrite(LED_BUILTIN, eyePulse > EYE_THRESHOLD ? HIGH : LOW);
+
   bodyNodFactor = map(bodyPositionSmooth, 0, 160, 100, 0);
   bodyNodFactor = constrain(bodyNodFactor, 0, 100);
 
