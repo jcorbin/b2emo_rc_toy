@@ -112,7 +112,6 @@ void setup() {
 void loop() {
   handleRadio();
 
-  mapInputs();
   smoothState();
   controlBody();
   controlDrives();
@@ -126,6 +125,7 @@ void handleRadio() {
     uint8_t len = sizeof(buf);
     if (rf95.recv(buf, &len)) {
       readComm(buf);
+      mapInputs();
       digitalWrite(LED_BUILTIN, HIGH);
     } else {
       Serial.println("Receive failed");
