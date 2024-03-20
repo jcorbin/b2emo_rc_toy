@@ -41,25 +41,13 @@ float eyePulse;
 
 typedef union vec2 { struct { float x, y; }; float e[2]; } vec2;
 
-float bodyPosition;
-float trackPosition;
-vec2 head, drive;
+typedef struct state {
+  float body, track;
+  vec2 head, drive;
+} state;
 
-float bodyPositionIn;
-float trackPositionIn;
-vec2 headIn, driveIn;
-
-float bodyPositionSmooth;
-float trackPositionSmooth;
-vec2 headForward, driveSmooth;
-
-float bodyPositionPrev;
-float trackPositionPrev;
-vec2 headPrev, drivePrev;
-
-float bodyNodFactor;
-float headNod;
-
+state input, cur, smooth, prev;
+float bodyNodFactor, headNod;
 vec2 driveSpeed, motorSpeed;
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
@@ -147,24 +135,24 @@ void readComm(const uint8_t *mess) {
   const char *ptr = strtok((char *)mess, ",");
   while (ptr != NULL && index < 7) {
     switch (index) {
-      case 0: bodyPositionIn = atoi(ptr); break;
-      case 1: trackPositionIn = atoi(ptr); break;
-      case 2: headIn.y = atoi(ptr); break;
-      case 3: headIn.x = atoi(ptr); break;
-      case 4: driveIn.x = atoi(ptr); break;
-      case 5: driveIn.y = atoi(ptr); break;
+      case 0: input.body = atoi(ptr); break;
+      case 1: input.track = atoi(ptr); break;
+      case 2: input.head.y = atoi(ptr); break;
+      case 3: input.head.x = atoi(ptr); break;
+      case 4: input.drive.x = atoi(ptr); break;
+      case 5: input.drive.y = atoi(ptr); break;
       case 6: omniIn = atoi(ptr); break;
     }
     index++;
     ptr = strtok(NULL, ",");
   }
 
-  bodyPosition = constrain(map(bodyPositionIn, 30, 66, 0, 180), 0, 180);
-  head.x = constrain(map(headIn.x, 0, 99, 0, 180), 2, 180);
-  head.y = constrain(map(headIn.y, 10, 89, 0, 180), 0, 180);
-  trackPosition = constrain(map(trackPositionIn, 30, 66, 0, 180), 5, 180);
-  drive.x = constrain(map(driveIn.x, 5, 95, 255, -255), -255, 255);
-  drive.y = constrain(map(driveIn.y, 5, 95, 255, -255), -255, 255);
+  cur.body = constrain(map(input.body, 30, 66, 0, 180), 0, 180);
+  cur.track = constrain(map(input.track, 30, 66, 0, 180), 5, 180);
+  cur.head.x = constrain(map(input.head.x, 0, 99, 0, 180), 2, 180);
+  cur.head.y = constrain(map(input.head.y, 10, 89, 0, 180), 0, 180);
+  cur.drive.x = constrain(map(input.drive.x, 5, 95, 255, -255), -255, 255);
+  cur.drive.y = constrain(map(input.drive.y, 5, 95, 255, -255), -255, 255);
 
   driveMode = omniIn > 0 ? omniDriveMode : normDriveMode;
 }
@@ -178,34 +166,31 @@ vec2 mix(const vec2 a, const vec2 b, const float p) {
 }
 
 void control() {
-  bodyPositionSmooth = mix(bodyPosition, bodyPositionPrev, FADE_BODY);
-  headSmooth = mix(head, headPrev, FADE_HEAD);
-  trackPositionSmooth = mix(trackPosition, trackPositionPrev, FADE_TRACK);
-  driveSmooth = mix(drive, drivePrev, FADE_DRIVE);
-  bodyPositionPrev = bodyPositionSmooth;
-  headPrev = headSmooth;
-  trackPositionPrev = trackPositionSmooth;
-  drivePrev = driveSmooth;
+  smooth.body = mix(cur.body, prev.body, FADE_BODY);
+  smooth.head = mix(cur.head, prev.head, FADE_HEAD);
+  smooth.track = mix(cur.track, prev.track, FADE_TRACK);
+  smooth.drive = mix(cur.drive, prev.drive, FADE_DRIVE);
+  prev = smooth;
 
   eyePulse *= FADE_EYE;
   digitalWrite(LED_BUILTIN, eyePulse > EYE_THRESHOLD ? HIGH : LOW);
 
-  bodyNodFactor = map(bodyPositionSmooth, 0, 160, 100, 0);
+  bodyNodFactor = map(smooth.body, 0, 160, 100, 0);
   bodyNodFactor = constrain(bodyNodFactor, 0, 100);
 
-  headNod = map(headSmooth.y, 0, 180, -90, 90);
+  headNod = map(smooth.head.y, 0, 180, -90, 90);
   headNod = headNod * (bodyNodFactor / 100);
   headNod = map(headNod, -90, 90, 50, 130);
 
   driveSpeed = {
-    driveSmooth.y - driveSmooth.x,
-    driveSmooth.y + driveSmooth.x
+    smooth.drive.y - smooth.drive.x,
+    smooth.drive.y + smooth.drive.x
   };
 
-  ServoHeadSide.write(headSmooth.x);
+  ServoHeadSide.write(smooth.head.x);
   ServoHeadNod.write(headNod);
-  ServoBody.write(bodyPositionSmooth);
-  ServoWheels.write(trackPositionSmooth);
+  ServoBody.write(smooth.body);
+  ServoWheels.write(smooth.track);
 
   motorSpeed = {
     driveMotorPair(driveMode.L, driveSpeed.e[0]),
