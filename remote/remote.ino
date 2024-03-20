@@ -8,17 +8,6 @@
 
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
-int body;
-int wheels;
-int driveForward;
-int driveSide;
-int headDown;
-int headSide;
-int mecanum;
-char radiopacket[100];
-String message = "0,0,0,0,0,0";
-byte sendLen;
-
 void setup() {
   pinMode(RFM95_RST, OUTPUT);
   pinMode(13, INPUT_PULLUP);
@@ -54,35 +43,35 @@ void setup() {
   rf95.setTxPower(23, false);
 }
 
-int16_t packetnum = 0; // packet counter, we increment per xmission
 void loop() {
-  body = analogRead(A0);
+  int body = analogRead(A0);
+  int wheels = analogRead(A1);
+  int driveForward = analogRead(A2);
+  int driveSide = analogRead(A3);
+  int headDown = analogRead(A4);
+  int headSide = analogRead(A5);
+  int mecanum = digitalRead(13);
+
   body = map(body, 0, 1023, 0, 99);
-
-  mecanum = digitalRead(13);
-
-  wheels = analogRead(A1);
   wheels = map(wheels, 0, 1023, 0, 99);
-
-  driveForward = analogRead(A2);
   driveForward = map(driveForward, 0, 1023, 0, 99);
-
-  driveSide = analogRead(A3);
   driveSide = map(driveSide, 0, 1023, 0, 99);
-
-  headDown = analogRead(A4);
   headDown = map(headDown, 0, 1023, 0, 99);
-
-  headSide = analogRead(A5);
   headSide = map(headSide, 0, 1023, 0, 99);
 
-  message = String(body) + "," + String(wheels) + "," + String(driveForward) +
-            "," + String(driveSide) + "," + String(headDown) + "," +
-            String(headSide) + "," + String(mecanum) + ",";
+  String message =
+    String(body) + "," +
+    String(wheels) + "," +
+    String(driveForward) + "," +
+    String(driveSide) + "," +
+    String(headDown) + "," +
+    String(headSide) + "," +
+    String(mecanum) + ","; // TODO make trailing "," not necessary
   Serial.println(message);
 
+  char radiopacket[100];
   message.toCharArray(radiopacket, 100);
-  sendLen = strlen(radiopacket);
+  byte sendLen = strlen(radiopacket);
 
   rf95.send((uint8_t *)radiopacket, sendLen);
   rf95.waitPacketSent();
