@@ -21,13 +21,18 @@
 #define MOTOR_RIGHT_FRONT 3
 #define MOTOR_RIGHT_BACK 4
 
+#define FADE_EYE 0.9 // eye pulse fade factor per tick
+#define FADE_BODY 0.90 // body position smoothing factor
+#define FADE_HEAD 0.80 // head position smoothing factor
+#define FADE_TRACK 0.90 // track position smoothing factor
+#define FADE_DRIVE 0.70 // drive vector smoothing factor
+
 #define DRIVE_STOP 20
 #define DRIVE_LIMIT 255
 
 #define MOTOR_MIN 150
 #define MOTOR_MAX 255
 
-#define EYE_FADE 0.9 // eye pulse fade factor per tick
 #define EYE_THRESHOLD 0.1 // LED cutoff after pulse fades under
 
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
@@ -118,10 +123,7 @@ void setup() {
 
 void loop() {
   handleRadio();
-
-  smoothState();
   control();
-
   delay(20);
 }
 
@@ -167,22 +169,25 @@ void readComm(const uint8_t *mess) {
   driveMode = omniIn > 0 ? omniDriveMode : normDriveMode;
 }
 
-void smoothState() {
-  bodyPositionSmooth = (bodyPosition * 0.1) + (bodyPositionPrev * 0.90);
-  headSmooth.y = (head.y * 0.2) + (headPrev.y * 0.8);
-  headSmooth.x = (head.x * 0.2) + (headPrev.x * 0.8);
-  trackPositionSmooth = (trackPosition * 0.1) + (trackPositionPrev * 0.90);
-  driveSmooth.x = (drive.x * 0.3) + (drivePrev.x * 0.70);
-  driveSmooth.y = (drive.y * 0.3) + (drivePrev.y * 0.70);
+float mix(const float a, const float b, const float p) {
+  return a * (1.0 - p) + b * p;
+}
 
+vec2 mix(const vec2 a, const vec2 b, const float p) {
+  return {mix(a.x, b.x, p), mix(a.y, b.y, p)};
+}
+
+void control() {
+  bodyPositionSmooth = mix(bodyPosition, bodyPositionPrev, FADE_BODY);
+  headSmooth = mix(head, headPrev, FADE_HEAD);
+  trackPositionSmooth = mix(trackPosition, trackPositionPrev, FADE_TRACK);
+  driveSmooth = mix(drive, drivePrev, FADE_DRIVE);
   bodyPositionPrev = bodyPositionSmooth;
   headPrev = headSmooth;
   trackPositionPrev = trackPositionSmooth;
   drivePrev = driveSmooth;
-}
 
-void control() {
-  eyePulse *= EYE_FADE;
+  eyePulse *= FADE_EYE;
   digitalWrite(LED_BUILTIN, eyePulse > EYE_THRESHOLD ? HIGH : LOW);
 
   bodyNodFactor = map(bodyPositionSmooth, 0, 160, 100, 0);
