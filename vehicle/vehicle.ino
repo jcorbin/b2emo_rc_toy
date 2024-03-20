@@ -196,23 +196,19 @@ void control() {
 }
 
 float driveMotorPair(Adafruit_DCMotor *motors[2], float speed) {
+  int motorMode = RELEASE;
   float motorSpeed = 0;
   speed = constrain(speed, -DRIVE_LIMIT, DRIVE_LIMIT);
   if (speed > DRIVE_STOP) {
+    motorMode = FORWARD;
     motorSpeed = map(speed, DRIVE_STOP, DRIVE_LIMIT, MOTOR_MIN, MOTOR_MAX);
-    motors[0]->run(FORWARD);
-    motors[1]->run(FORWARD);
-    motors[0]->setSpeed(motorSpeed);
-    motors[1]->setSpeed(motorSpeed);
   } else if (speed < -DRIVE_STOP) {
+    motorMode = BACKWARD;
     motorSpeed = map(speed, -DRIVE_STOP, -DRIVE_LIMIT, MOTOR_MIN, MOTOR_MAX);
-    motors[0]->run(BACKWARD);
-    motors[1]->run(BACKWARD);
-    motors[0]->setSpeed(motorSpeed);
-    motors[1]->setSpeed(motorSpeed);
-  } else {
-    motors[0]->run(RELEASE);
-    motors[1]->run(RELEASE);
   }
+  motors[0]->run(motorMode);
+  motors[1]->run(motorMode);
+  motors[0]->setSpeed(motorSpeed);
+  motors[1]->setSpeed(motorSpeed);
   return motorSpeed;
 }
