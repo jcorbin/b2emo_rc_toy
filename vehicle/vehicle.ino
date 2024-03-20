@@ -34,6 +34,8 @@ RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
 float eyePulse;
 
+typedef union vec2 { struct { float x, y; }; float e[2]; } vec2;
+
 float bodyPosition;
 float trackPosition;
 float headForward;
@@ -47,7 +49,6 @@ float headForwardIn;
 float headSideIn;
 float driveSideIn;
 float driveForwardIn;
-float omniIn;
 
 float bodyPositionSmooth;
 float trackPositionSmooth;
@@ -66,11 +67,7 @@ float driveForwardPrev;
 float bodyNodFactor;
 float headNod;
 
-float speedL;
-float speedR;
-
-float motorSpeedL;
-float motorSpeedR;
+vec2 driveSpeed, motorSpeed;
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *motorBL = AFMS.getMotor(MOTOR_LEFT_BACK);
@@ -78,10 +75,16 @@ Adafruit_DCMotor *motorFL = AFMS.getMotor(MOTOR_LEFT_FRONT);
 Adafruit_DCMotor *motorFR = AFMS.getMotor(MOTOR_RIGHT_FRONT);
 Adafruit_DCMotor *motorBR = AFMS.getMotor(MOTOR_RIGHT_BACK);
 
-Servo ServoWheels;
-Servo ServoBody;
-Servo ServoHeadSide;
-Servo ServoHeadNod;
+typedef struct driveScheme {
+  Adafruit_DCMotor *L[2];
+  Adafruit_DCMotor *R[2];
+} driveScheme;
+
+const driveScheme omniDriveMode = {{motorBL, motorFL}, {motorBR, motorFR}};
+const driveScheme normDriveMode = {{motorBL, motorFR}, {motorBR, motorFL}};
+driveScheme driveMode = normDriveMode;
+
+Servo ServoWheels, ServoBody, ServoHeadSide, ServoHeadNod;
 
 void setup() {
   pinMode(EYE_PIN, OUTPUT);
@@ -129,8 +132,7 @@ void loop() {
   handleRadio();
 
   smoothState();
-  controlBody();
-  controlDrives();
+  control();
 
   delay(20);
 }
@@ -150,6 +152,7 @@ void handleRadio() {
 }
 
 void readComm(const uint8_t *mess) {
+  float omniIn = 0;
   byte index = 0;
   const char *ptr = strtok((char *)mess, ",");
   while (ptr != NULL && index < 7) {
@@ -172,6 +175,8 @@ void readComm(const uint8_t *mess) {
   trackPosition = constrain(map(trackPositionIn, 30, 66, 0, 180), 5, 180);
   driveSide = constrain(map(driveSideIn, 5, 95, 255, -255), -255, 255);
   driveForward = constrain(map(driveForwardIn, 5, 95, 255, -255), -255, 255);
+
+  driveMode = omniIn > 0 ? omniDriveMode : normDriveMode;
 }
 
 void smoothState() {
@@ -190,7 +195,7 @@ void smoothState() {
   driveForwardPrev = driveForwardSmooth;
 }
 
-void controlBody() {
+void control() {
   eyePulse *= EYE_FADE;
   digitalWrite(LED_BUILTIN, eyePulse > EYE_THRESHOLD ? HIGH : LOW);
 
@@ -201,42 +206,40 @@ void controlBody() {
   headNod = headNod * (bodyNodFactor / 100);
   headNod = map(headNod, -90, 90, 50, 130);
 
+  driveSpeed = {
+    driveForwardSmooth - driveSideSmooth,
+    driveForwardSmooth + driveSideSmooth
+  };
+
   ServoHeadSide.write(headSideSmooth);
   ServoHeadNod.write(headNod);
   ServoBody.write(bodyPositionSmooth);
   ServoWheels.write(trackPositionSmooth);
+
+  motorSpeed = {
+    driveMotorPair(driveMode.L, driveSpeed.e[0]),
+    driveMotorPair(driveMode.R, driveSpeed.e[1])
+  };
 }
 
-void controlDrives() {
-  speedR = driveForwardSmooth + driveSideSmooth;
-  speedL = driveForwardSmooth - driveSideSmooth;
-  if (omniIn > 0) {
-    motorSpeedR = driveMotorPair(motorBR, motorFR, speedR);
-    motorSpeedL = driveMotorPair(motorBL, motorFL, speedL);
-  } else {
-    motorSpeedR = driveMotorPair(motorBR, motorFL, speedR);
-    motorSpeedL = driveMotorPair(motorBL, motorFR, speedL);
-  }
-}
-
-float driveMotorPair(Adafruit_DCMotor *motorA, Adafruit_DCMotor *motorB, float speed) {
+float driveMotorPair(Adafruit_DCMotor *motors[2], float speed) {
   float motorSpeed = 0;
   speed = constrain(speed, -DRIVE_LIMIT, DRIVE_LIMIT);
   if (speed > DRIVE_STOP) {
     motorSpeed = map(speed, DRIVE_STOP, DRIVE_LIMIT, MOTOR_MIN, MOTOR_MAX);
-    motorA->run(FORWARD);
-    motorB->run(FORWARD);
-    motorA->setSpeed(motorSpeed);
-    motorB->setSpeed(motorSpeed);
+    motors[0]->run(FORWARD);
+    motors[1]->run(FORWARD);
+    motors[0]->setSpeed(motorSpeed);
+    motors[1]->setSpeed(motorSpeed);
   } else if (speed < -DRIVE_STOP) {
     motorSpeed = map(speed, -DRIVE_STOP, -DRIVE_LIMIT, MOTOR_MIN, MOTOR_MAX);
-    motorA->run(BACKWARD);
-    motorB->run(BACKWARD);
-    motorA->setSpeed(motorSpeed);
-    motorB->setSpeed(motorSpeed);
+    motors[0]->run(BACKWARD);
+    motors[1]->run(BACKWARD);
+    motors[0]->setSpeed(motorSpeed);
+    motors[1]->setSpeed(motorSpeed);
   } else {
-    motorA->run(RELEASE);
-    motorB->run(RELEASE);
+    motors[0]->run(RELEASE);
+    motors[1]->run(RELEASE);
   }
   return motorSpeed;
 }
