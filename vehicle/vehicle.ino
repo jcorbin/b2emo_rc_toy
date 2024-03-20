@@ -47,7 +47,6 @@ typedef struct state {
 } state;
 
 state input, cur, smooth, prev;
-float bodyNodFactor, headNod;
 vec2 driveSpeed, motorSpeed;
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
@@ -175,11 +174,10 @@ void control() {
   eyePulse *= FADE_EYE;
   digitalWrite(LED_BUILTIN, eyePulse > EYE_THRESHOLD ? HIGH : LOW);
 
-  bodyNodFactor = constrain(map(smooth.body, 0, 160, 100, 0), 0, 100);
-
-  headNod = map(smooth.head.y, 0, 180, -90, 90);
-  headNod = headNod * (bodyNodFactor / 100);
-  headNod = map(headNod, -90, 90, 50, 130);
+  float bodyNodFactor = constrain(map(smooth.body, 0, 160, 100, 0), 0, 100);
+  smooth.head.y = map(smooth.head.y, 0, 180, -90, 90);
+  smooth.head.y = smooth.head.y * (bodyNodFactor / 100);
+  smooth.head.y = map(smooth.head.y, -90, 90, 50, 130);
 
   driveSpeed = {
     smooth.drive.y - smooth.drive.x,
@@ -187,7 +185,7 @@ void control() {
   };
 
   ServoHeadSide.write(smooth.head.x);
-  ServoHeadNod.write(headNod);
+  ServoHeadNod.write(smooth.head.y);
   ServoBody.write(smooth.body);
   ServoWheels.write(smooth.track);
 
