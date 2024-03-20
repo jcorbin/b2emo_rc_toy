@@ -6,6 +6,7 @@ profiles:
         platform_index_url: https://adafruit.github.io/arduino-board-index/package_adafruit_index.json
     libraries:
       - Adafruit Motor Shield V2 Library (1.1.3)
+      - Adafruit BusIO (1.15.0)
       - RadioHead (1.122.1)
 
 default_profile: feather
