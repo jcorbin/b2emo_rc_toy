@@ -175,8 +175,7 @@ void control() {
   eyePulse *= FADE_EYE;
   digitalWrite(LED_BUILTIN, eyePulse > EYE_THRESHOLD ? HIGH : LOW);
 
-  bodyNodFactor = map(smooth.body, 0, 160, 100, 0);
-  bodyNodFactor = constrain(bodyNodFactor, 0, 100);
+  bodyNodFactor = constrain(map(smooth.body, 0, 160, 100, 0), 0, 100);
 
   headNod = map(smooth.head.y, 0, 180, -90, 90);
   headNod = headNod * (bodyNodFactor / 100);
