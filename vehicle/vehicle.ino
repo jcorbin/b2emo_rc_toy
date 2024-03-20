@@ -38,31 +38,19 @@ typedef union vec2 { struct { float x, y; }; float e[2]; } vec2;
 
 float bodyPosition;
 float trackPosition;
-float headForward;
-float headSide;
-float driveSide;
-float driveForward;
+vec2 head, drive;
 
 float bodyPositionIn;
 float trackPositionIn;
-float headForwardIn;
-float headSideIn;
-float driveSideIn;
-float driveForwardIn;
+vec2 headIn, driveIn;
 
 float bodyPositionSmooth;
 float trackPositionSmooth;
-float headForwardSmooth;
-float headSideSmooth;
-float driveSideSmooth;
-float driveForwardSmooth;
+vec2 headForward, driveSmooth;
 
 float bodyPositionPrev;
 float trackPositionPrev;
-float headForwardPrev;
-float headSidePrev;
-float driveSidePrev;
-float driveForwardPrev;
+vec2 headPrev, drivePrev;
 
 float bodyNodFactor;
 float headNod;
@@ -159,10 +147,10 @@ void readComm(const uint8_t *mess) {
     switch (index) {
       case 0: bodyPositionIn = atoi(ptr); break;
       case 1: trackPositionIn = atoi(ptr); break;
-      case 2: headForwardIn = atoi(ptr); break;
-      case 3: headSideIn = atoi(ptr); break;
-      case 4: driveSideIn = atoi(ptr); break;
-      case 5: driveForwardIn = atoi(ptr); break;
+      case 2: headIn.y = atoi(ptr); break;
+      case 3: headIn.x = atoi(ptr); break;
+      case 4: driveIn.x = atoi(ptr); break;
+      case 5: driveIn.y = atoi(ptr); break;
       case 6: omniIn = atoi(ptr); break;
     }
     index++;
@@ -170,29 +158,27 @@ void readComm(const uint8_t *mess) {
   }
 
   bodyPosition = constrain(map(bodyPositionIn, 30, 66, 0, 180), 0, 180);
-  headSide = constrain(map(headSideIn, 0, 99, 0, 180), 2, 180);
-  headForward = constrain(map(headForwardIn, 10, 89, 0, 180), 0, 180);
+  head.x = constrain(map(headIn.x, 0, 99, 0, 180), 2, 180);
+  head.y = constrain(map(headIn.y, 10, 89, 0, 180), 0, 180);
   trackPosition = constrain(map(trackPositionIn, 30, 66, 0, 180), 5, 180);
-  driveSide = constrain(map(driveSideIn, 5, 95, 255, -255), -255, 255);
-  driveForward = constrain(map(driveForwardIn, 5, 95, 255, -255), -255, 255);
+  drive.x = constrain(map(driveIn.x, 5, 95, 255, -255), -255, 255);
+  drive.y = constrain(map(driveIn.y, 5, 95, 255, -255), -255, 255);
 
   driveMode = omniIn > 0 ? omniDriveMode : normDriveMode;
 }
 
 void smoothState() {
   bodyPositionSmooth = (bodyPosition * 0.1) + (bodyPositionPrev * 0.90);
-  headForwardSmooth = (headForward * 0.2) + (headForwardPrev * 0.8);
-  headSideSmooth = (headSide * 0.2) + (headSidePrev * 0.8);
+  headSmooth.y = (head.y * 0.2) + (headPrev.y * 0.8);
+  headSmooth.x = (head.x * 0.2) + (headPrev.x * 0.8);
   trackPositionSmooth = (trackPosition * 0.1) + (trackPositionPrev * 0.90);
-  driveSideSmooth = (driveSide * 0.3) + (driveSidePrev * 0.70);
-  driveForwardSmooth = (driveForward * 0.3) + (driveForwardPrev * 0.70);
+  driveSmooth.x = (drive.x * 0.3) + (drivePrev.x * 0.70);
+  driveSmooth.y = (drive.y * 0.3) + (drivePrev.y * 0.70);
 
   bodyPositionPrev = bodyPositionSmooth;
-  headForwardPrev = headForwardSmooth;
-  headSidePrev = headSideSmooth;
+  headPrev = headSmooth;
   trackPositionPrev = trackPositionSmooth;
-  driveSidePrev = driveSideSmooth;
-  driveForwardPrev = driveForwardSmooth;
+  drivePrev = driveSmooth;
 }
 
 void control() {
@@ -202,16 +188,16 @@ void control() {
   bodyNodFactor = map(bodyPositionSmooth, 0, 160, 100, 0);
   bodyNodFactor = constrain(bodyNodFactor, 0, 100);
 
-  headNod = map(headForwardSmooth, 0, 180, -90, 90);
+  headNod = map(headSmooth.y, 0, 180, -90, 90);
   headNod = headNod * (bodyNodFactor / 100);
   headNod = map(headNod, -90, 90, 50, 130);
 
   driveSpeed = {
-    driveForwardSmooth - driveSideSmooth,
-    driveForwardSmooth + driveSideSmooth
+    driveSmooth.y - driveSmooth.x,
+    driveSmooth.y + driveSmooth.x
   };
 
-  ServoHeadSide.write(headSideSmooth);
+  ServoHeadSide.write(headSmooth.x);
   ServoHeadNod.write(headNod);
   ServoBody.write(bodyPositionSmooth);
   ServoWheels.write(trackPositionSmooth);
